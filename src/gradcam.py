@@ -13,7 +13,7 @@ import torch
 from PIL import Image
 
 from src.dataset import IMAGENET_MEAN, IMAGENET_STD, get_transforms
-from src.predict import _detect_and_crop_face
+from src.face_utils import detect_and_crop_face
 
 
 class GradCAM:
@@ -114,7 +114,7 @@ def generate_gradcam(model: torch.nn.Module, pil_image: Image.Image) -> Image.Im
     Returns:
         PIL Image with heatmap overlay.
     """
-    face_image = _detect_and_crop_face(pil_image)
+    face_image = detect_and_crop_face(pil_image)
     transform = get_transforms(train=False)
     input_tensor = transform(face_image.convert("RGB")).unsqueeze(0)
     device = next(model.parameters()).device
