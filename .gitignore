@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Models and training outputs
+*.pth
+*.pt
+*.onnx
+training_curve*.png
+
+# Datasets (large — download separately)
+data/train/real/*
+!data/train/real/.gitkeep
+data/train/fake/*
+!data/train/fake/.gitkeep
+data/valid/real/*
+!data/valid/real/.gitkeep
+data/valid/fake/*
+!data/valid/fake/.gitkeep
+data_source/
+140k-real-and-fake-faces.zip
+*.zip
+
+# Hugging Face cache
+.cache/
+.huggingface/
+
+# IDE and OS
+.vscode/
+.idea/
+.cursor/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.kaggle/
+kaggle.json
+
+# Logs
+*.log

@@ -1,0 +1,27 @@
+# Deep learning framework (PyTorch 2.x)
+# Note: torch==2.1.2 requires Python 3.10. For Python 3.13+, use the versions below.
+torch==2.12.0
+torchvision==0.27.0
+
+# Computer vision and image processing
+opencv-python==4.13.0.92
+Pillow==10.4.0
+
+# Web UI
+gradio>=5.0,<6.0
+
+# Pre-trained deepfake detector (free, no API key)
+transformers>=4.40.0
+safetensors>=0.4.0
+
+# Data science utilities
+numpy==2.2.4
+matplotlib==3.10.9
+scikit-learn==1.8.0
+
+# Kaggle dataset download (optional, for setup convenience)
+kaggle==1.6.17
+
+# Python 3.13 compatibility
+audioop-lts==0.2.2
+huggingface_hub>=0.19.3,<1.0
