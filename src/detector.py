@@ -20,10 +20,9 @@ ENSEMBLE_MODELS: tuple[tuple[str, str], ...] = (
     ("3class", "prithivMLmods/AI-vs-Deepfake-vs-Real-v2.0"),
 )
 
-WEIGHTS: dict[str, float] = {"v1": 0.45, "vit": 0.35, "3class": 0.20}
-ENSEMBLE_FAKE_THRESHOLD = 0.45
-STRONG_FAKE_THRESHOLD = 0.70
-VIT_AI_SIGNAL = 0.65
+# Display weights (v1 is most reliable on real face photos)
+DISPLAY_WEIGHTS: dict[str, float] = {"v1": 0.65, "vit": 0.20, "3class": 0.15}
+FAKE_THRESHOLD_LINE = 0.50  # shown on explanation chart
 
 
 @dataclass
@@ -140,27 +139,36 @@ class EnsembleDetector:
         ]
 
     def _decide_fake(self, model_scores: list[ModelScore]) -> tuple[bool, float, float]:
-        """Combine per-model TTA scores into ensemble fake/real probabilities."""
+        """
+        Combine per-model scores with v1 as the primary signal.
+
+        The ViT model (capcheck) often scores real photos as fake; v1 is used
+        to veto those false positives while vit/3class help catch modern AI
+        images when v1 is uncertain.
+        """
         by_name = {score.name: score.fake_prob for score in model_scores}
-        fake_probs = [score.fake_prob for score in model_scores]
+        v1 = by_name["v1"]
+        vit = by_name["vit"]
+        c3 = by_name["3class"]
 
-        weighted_fake = sum(WEIGHTS[name] * by_name[name] for name in WEIGHTS)
-        max_fake = max(fake_probs)
-        votes = sum(1 for prob in fake_probs if prob >= 0.5)
+        weighted_fake = sum(DISPLAY_WEIGHTS[name] * by_name[name] for name in DISPLAY_WEIGHTS)
 
-        v1_fake = by_name["v1"]
-        vit_fake = by_name["vit"]
+        # --- Decision tree (v1-anchored) ---
+        if v1 < 0.22:
+            # v1 strongly says real — only flag AI-art style fakes with 3class + vit
+            is_fake = c3 >= 0.40 and vit >= 0.78
+        elif v1 > 0.52:
+            is_fake = True
+        elif v1 < 0.42:
+            # v1 moderately real — vit can confirm fake but v1 must not be near-zero
+            is_fake = vit >= 0.82 and v1 >= 0.25
+        else:
+            # v1 borderline (0.42–0.52) — need v1 and vit to agree strongly
+            is_fake = v1 >= 0.48 and vit >= 0.85
 
-        is_fake = (
-            weighted_fake >= ENSEMBLE_FAKE_THRESHOLD
-            or votes >= 2
-            or (weighted_fake >= 0.38 and max_fake >= STRONG_FAKE_THRESHOLD)
-            or (v1_fake < 0.15 and vit_fake >= VIT_AI_SIGNAL)
-        )
-
-        # v1 strongly says real — require higher agreement before calling fake
-        if v1_fake < 0.15 and weighted_fake < 0.55:
-            is_fake = weighted_fake >= 0.50 and max_fake >= STRONG_FAKE_THRESHOLD
+        # Modern AI path: 3class confident even when v1 misses face fakes
+        if not is_fake and c3 >= 0.45 and vit >= 0.72:
+            is_fake = True
 
         real_prob = 1.0 - weighted_fake
         return is_fake, weighted_fake, real_prob
@@ -232,7 +240,7 @@ class EnsembleDetector:
         axes[1].set_xlabel("Fake score (%)", color="#e0e0e0", fontsize=9)
         axes[1].set_title("Per model (TTA)", color="#e0e0e0", fontsize=11)
         axes[1].tick_params(colors="#e0e0e0")
-        axes[1].axvline(ENSEMBLE_FAKE_THRESHOLD * 100, color="#888", linestyle="--", linewidth=1)
+        axes[1].axvline(FAKE_THRESHOLD_LINE * 100, color="#888", linestyle="--", linewidth=1)
         for spine in ("top", "right"):
             axes[1].spines[spine].set_visible(False)
         for bar, prob in zip(bars, model_fake):
